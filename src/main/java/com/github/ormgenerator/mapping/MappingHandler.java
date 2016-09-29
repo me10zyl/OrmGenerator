@@ -13,21 +13,33 @@ public class MappingHandler {
     public MappingHandler() {
     }
 
-    public MappingHandler(Mapping[] mappings) {
-        this.mappings = mappings;
+    public String handleMySQL(String columnClassName) {
+        return handle(columnClassName, mappings);
     }
 
-    public String handle(String source){
+    public String handleOracle(String columnClassName, String columnTypeName, int scale, boolean isPrimaryKey) {
+        String process = handle(columnClassName, mappings);
+        if (scale == 0 && columnTypeName.equals("NUMBER")) {
+            if (isPrimaryKey) {
+                process = "Long";
+            } else {
+                process = "Integer";
+            }
+        }
+        return process;
+    }
+
+    private String handle(String source, Mapping[] mappings) {
         String target = ignorePackageName(source);
-        for(Mapping mapping : mappings){
-            if(mapping.getSource().equals(target)){
+        for (Mapping mapping : mappings) {
+            if (mapping.getSource().equals(target)) {
                 target = mapping.getTarget();
             }
         }
         return target;
     }
 
-    private String ignorePackageName(String clazz){
+    private String ignorePackageName(String clazz) {
         String[] split = clazz.split("\\.");
         return split[split.length - 1];
     }

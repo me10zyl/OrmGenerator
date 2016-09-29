@@ -15,6 +15,8 @@ public abstract class OrmBase {
     protected String dbName;
     protected String username;
     protected String password;
+    protected String sid;
+    protected String serviceName;
 
     public enum Database {
         MySQL, Oracle
@@ -38,7 +40,13 @@ public abstract class OrmBase {
                     url = "jdbc:mysql://" + host + ":" + port + "/" + dbName;
                     break;
                 case Oracle:
-                    Class.forName("com.mysql.jdbc.Driver");
+                    Class.forName("oracle.jdbc.driver.OracleDriver");
+                    url = "jdbc:oracle:thin:@" + host + ":" + port;
+                    if (sid != null) {
+                        url += ":" + sid;
+                    } else if (serviceName != null) {
+                        url += "/" + serviceName;
+                    }
                     break;
                 default:
                     break;

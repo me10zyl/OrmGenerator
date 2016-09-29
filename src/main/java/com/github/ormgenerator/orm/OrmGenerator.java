@@ -15,6 +15,7 @@ import com.github.ormgenerator.mapping.MappingHandler;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -31,7 +32,6 @@ public class OrmGenerator extends OrmBase {
     public static class Options {
         public boolean annotation;
         public boolean comment = true;
-        public MappingHandler mappingHandler = new MappingHandler();
     }
 
     public OrmGenerator(String host, int port, String username, String password, String dbName, Database database, Options options) {
@@ -39,11 +39,29 @@ public class OrmGenerator extends OrmBase {
         this.options = options;
     }
 
-    public OrmGenerator(String host, int port, String username, String password, String dbName, Database database) {
-        super(host, port, username, password, dbName, database);
-        mappingHandler = options.mappingHandler;
+    public OrmGenerator(String host, int port, String username, String password, String dbName, Database database, String sid, String serviceName, Options options) {
+        this(host, port, username, password, dbName, database, options);
+        this.sid = sid;
+        this.serviceName = serviceName;
     }
 
+    public OrmGenerator(String host, int port, String username, String password, String dbName, Database database) {
+        super(host, port, username, password, dbName, database);
+        mappingHandler = new MappingHandler();
+    }
+
+    private void justForTest(DatabaseMetaData databaseMetaData) throws SQLException {
+        ResultSet catalogs = databaseMetaData.getCatalogs();
+        //mysql only
+        while(catalogs.next()){
+            System.out.println("catalog: " +catalogs.getString("TABLE_CAT"));
+        }
+        //oracle only
+        ResultSet schemas = databaseMetaData.getSchemas();
+        while(schemas.next()){
+            System.out.println("schema: " + schemas.getString("TABLE_SCHEM"));
+        }
+    }
 
     public String generateEntity(String tableName) {
         ClassOrInterfaceDeclaration clazz = new ClassOrInterfaceDeclaration(EnumSet.of(Modifier.PUBLIC), false, camelName(tableName, true));
@@ -56,17 +74,26 @@ public class OrmGenerator extends OrmBase {
         try {
             connection = getConnection();
             DatabaseMetaData databaseMetaData = connection.getMetaData();
-            resultSet = databaseMetaData.getColumns(connection.getCatalog(), null, tableName, "%");
+            resultSet = databaseMetaData.getColumns(dbName, dbName, tableName, "%");
             preparedStatement = connection.prepareStatement("select * from " + tableName);
-            ResultSet pks = databaseMetaData.getPrimaryKeys(connection.getCatalog(), null, tableName);
+            if (Database.Oracle.equals(database)) {
+                preparedStatement.execute();
+            }
+            ResultSet pks = databaseMetaData.getPrimaryKeys(dbName, dbName, tableName);
             String pkColumnName = null;
             if (pks.next()) {
                 pkColumnName = pks.getString("COLUMN_NAME");
             }
-            int i = 1;
+           int i = 1;
             while (resultSet.next()) {
                 String columnName = resultSet.getString("COLUMN_NAME");
-                String typeName = mappingHandler.handle(preparedStatement.getMetaData().getColumnClassName(i));
+                String typeName;
+                ResultSetMetaData metaData = preparedStatement.getMetaData();
+                if (Database.Oracle.equals(database)) {
+                    typeName = mappingHandler.handleOracle(metaData.getColumnClassName(i), metaData.getColumnTypeName(i), metaData.getScale(i), columnName.equals(pkColumnName));
+                }else{
+                    typeName = mappingHandler.handleMySQL(metaData.getColumnClassName(i));
+                }
                 String document = resultSet.getString("REMARKS");
                 String fieldName = camelName(columnName, false);
                 FieldDeclaration field = getField(pkColumnName, columnName, fieldName, typeName, document);
@@ -125,9 +152,11 @@ public class OrmGenerator extends OrmBase {
         VariableDeclaratorId variableDeclaratorId = new VariableDeclaratorId(fieldName);
         variableDeclarator.setId(variableDeclaratorId);
         FieldDeclaration fieldDeclaration = new FieldDeclaration(modifiers, type, variableDeclarator);
-        Comment comment = new JavadocComment(document);
         if (options.comment) {
-            fieldDeclaration.setComment(comment);
+            if (document != null) {
+                Comment comment = new JavadocComment(document);
+                fieldDeclaration.setComment(comment);
+            }
         }
         if (options.annotation) {
             List<AnnotationExpr> annotations = new ArrayList<AnnotationExpr>();

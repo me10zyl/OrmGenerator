@@ -2,7 +2,7 @@ Introduction
 ---
 Database table to Java Pojo class, support JPA annotations.
 <br/>
-Support `MySQL`,`Oracle` database.(current version only support `MySQL`)
+Support `MySQL`,`Oracle` database.
 <br/>
 
 Usage
@@ -15,9 +15,8 @@ OrmGenerator ormTool = new OrmGenerator("127.0.0.1", 3306, "username", "password
 String entity = ormTool.generateEntity("table_name");
 System.out.println(entity); //this is java pojo class string
 ```
-OrmGenerator.Options has 3 option param
+OrmGenerator.Options has 2 option param
 ```
 OrmGenerator.Options.annotation //generate JPA annotation, default false
 OrmGenerator.Options.comment //generate Javadoc comment via field remark, default true
-OrmGenerator.Options.mappingHandler // advanced mapping handler, custom field type mapping
 ```
