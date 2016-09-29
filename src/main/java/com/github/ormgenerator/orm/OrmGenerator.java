@@ -1,4 +1,4 @@
-package top.javaw.orm;
+package com.github.ormgenerator.orm;
 
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.*;
@@ -11,7 +11,7 @@ import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.VoidType;
-import top.javaw.mapping.MappingHandler;
+import com.github.ormgenerator.mapping.MappingHandler;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;

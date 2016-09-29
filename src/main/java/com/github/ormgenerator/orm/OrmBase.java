@@ -1,4 +1,4 @@
-package top.javaw.orm;
+package com.github.ormgenerator.orm;
 
 import java.sql.*;
 

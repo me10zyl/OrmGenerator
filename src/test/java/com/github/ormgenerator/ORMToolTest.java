@@ -1,8 +1,8 @@
-package top.javaw;
+package com.github.ormgenerator;
 
 import org.junit.Test;
-import top.javaw.orm.OrmBase;
-import top.javaw.orm.OrmGenerator;
+import com.github.ormgenerator.orm.OrmBase;
+import com.github.ormgenerator.orm.OrmGenerator;
 
 /**
  * Created by ZyL on 2016/9/28.

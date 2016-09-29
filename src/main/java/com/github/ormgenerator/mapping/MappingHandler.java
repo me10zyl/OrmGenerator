@@ -1,4 +1,4 @@
-package top.javaw.mapping;
+package com.github.ormgenerator.mapping;
 
 /**
  * Created by ZyL on 2016/9/29.
