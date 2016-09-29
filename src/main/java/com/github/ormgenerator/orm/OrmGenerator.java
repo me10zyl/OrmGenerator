@@ -12,6 +12,7 @@ import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.VoidType;
 import com.github.ormgenerator.mapping.MappingHandler;
+import oracle.jdbc.OracleConnection;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -71,12 +72,16 @@ public class OrmGenerator extends OrmBase {
         List<MethodDeclaration> getters = new ArrayList<MethodDeclaration>();
         List<MethodDeclaration> setters = new ArrayList<MethodDeclaration>();
         clazz.setMembers(members);
+        boolean isOracle = Database.Oracle.equals(database);
         try {
             connection = getConnection();
+            if(isOracle){
+                ((OracleConnection)connection).setRemarksReporting(true);
+            }
             DatabaseMetaData databaseMetaData = connection.getMetaData();
             resultSet = databaseMetaData.getColumns(dbName, dbName, tableName, "%");
             preparedStatement = connection.prepareStatement("select * from " + tableName);
-            if (Database.Oracle.equals(database)) {
+            if (isOracle) {
                 preparedStatement.execute();
             }
             ResultSet pks = databaseMetaData.getPrimaryKeys(dbName, dbName, tableName);
@@ -89,7 +94,7 @@ public class OrmGenerator extends OrmBase {
                 String columnName = resultSet.getString("COLUMN_NAME");
                 String typeName;
                 ResultSetMetaData metaData = preparedStatement.getMetaData();
-                if (Database.Oracle.equals(database)) {
+                if (isOracle) {
                     typeName = mappingHandler.handleOracle(metaData.getColumnClassName(i), metaData.getColumnTypeName(i), metaData.getScale(i), columnName.equals(pkColumnName));
                 }else{
                     typeName = mappingHandler.handleMySQL(metaData.getColumnClassName(i));

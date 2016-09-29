@@ -7,7 +7,8 @@ public class MappingHandler {
 
     private Mapping[] mappings = new Mapping[]{
             new Mapping("Timestamp", "Date"),
-            new Mapping("Float", "BigDecimal")
+            new Mapping("Float", "BigDecimal"),
+            new Mapping("Double", "BigDecimal")
     };
 
     public MappingHandler() {
