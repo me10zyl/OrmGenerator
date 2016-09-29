@@ -1,5 +1,7 @@
 package com.github.ormgenerator.orm;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.comments.Comment;
@@ -14,6 +16,7 @@ import com.github.javaparser.ast.type.VoidType;
 import com.github.ormgenerator.mapping.MappingHandler;
 import oracle.jdbc.OracleConnection;
 
+import java.io.InputStream;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -33,6 +36,9 @@ public class OrmGenerator extends OrmBase {
     public static class Options {
         public boolean annotation;
         public boolean comment = true;
+        //compare output
+        public boolean oldFieldComment = true;
+        public boolean classOnly;
     }
 
     public OrmGenerator(String host, int port, String username, String password, String dbName, Database database, Options options) {
@@ -54,17 +60,70 @@ public class OrmGenerator extends OrmBase {
     private void justForTest(DatabaseMetaData databaseMetaData) throws SQLException {
         ResultSet catalogs = databaseMetaData.getCatalogs();
         //mysql only
-        while(catalogs.next()){
-            System.out.println("catalog: " +catalogs.getString("TABLE_CAT"));
+        while (catalogs.next()) {
+            System.out.println("catalog: " + catalogs.getString("TABLE_CAT"));
         }
         //oracle only
         ResultSet schemas = databaseMetaData.getSchemas();
-        while(schemas.next()){
+        while (schemas.next()) {
             System.out.println("schema: " + schemas.getString("TABLE_SCHEM"));
         }
     }
 
+    public String generateEntity(String tableName, InputStream in) {
+        ClassOrInterfaceDeclaration gen = generateEntityImpl(tableName);
+        if (in == null) {
+            return gen.toString();
+        }
+        return compareAndOutput(JavaParser.parse(in), gen);
+    }
+
+
+    public String generateEntity(String tableName, String existedClassJavaCode) {
+        ClassOrInterfaceDeclaration gen = generateEntityImpl(tableName);
+        if (existedClassJavaCode == null || existedClassJavaCode.equals("")) {
+            return gen.toString();
+        }
+        return compareAndOutput(JavaParser.parse(existedClassJavaCode), gen);
+    }
+
+    private String compareAndOutput(CompilationUnit exist, ClassOrInterfaceDeclaration gen) {
+        List<TypeDeclaration<?>> types = exist.getTypes();
+        ClassOrInterfaceDeclaration type = (ClassOrInterfaceDeclaration)types.get(0);
+        List<BodyDeclaration<?>> members = type.getMembers();
+        List<FieldDeclaration> genFields = gen.getFields();
+
+        List<FieldDeclaration> addingFields = new ArrayList<FieldDeclaration>();
+
+        int fieldEndIndex = 0;
+        int index = 0;
+        for (BodyDeclaration member : members) {
+            if (member instanceof FieldDeclaration) {
+                FieldDeclaration existField = (FieldDeclaration) member;
+                for (FieldDeclaration genField : genFields) {
+                    if (!genField.getVariables().get(0).getId().getName().toLowerCase().
+                            equals(existField.getVariables().get(0).getId().getName().toLowerCase())) {
+                        addingFields.add(genField);
+                    }else{
+                        Comment comment = existField.getComment();
+                        if(comment == null && genField.getComment() != null && options.oldFieldComment){
+                            existField.setComment(genField.getComment());
+                        }
+                    }
+                }
+                fieldEndIndex = index;
+            }
+            index++;
+        }
+        type.getMembers().addAll(fieldEndIndex, addingFields);
+        return options.classOnly ? type.toString() : exist.toString();
+    }
+
     public String generateEntity(String tableName) {
+        return generateEntity(tableName, "");
+    }
+
+    private ClassOrInterfaceDeclaration generateEntityImpl(String tableName) {
         ClassOrInterfaceDeclaration clazz = new ClassOrInterfaceDeclaration(EnumSet.of(Modifier.PUBLIC), false, camelName(tableName, true));
         setJPAAnnotation(clazz, tableName);
         List<BodyDeclaration<?>> members = new ArrayList<BodyDeclaration<?>>();
@@ -75,8 +134,8 @@ public class OrmGenerator extends OrmBase {
         boolean isOracle = Database.Oracle.equals(database);
         try {
             connection = getConnection();
-            if(isOracle){
-                ((OracleConnection)connection).setRemarksReporting(true);
+            if (isOracle) {
+                ((OracleConnection) connection).setRemarksReporting(true);
             }
             DatabaseMetaData databaseMetaData = connection.getMetaData();
             resultSet = databaseMetaData.getColumns(dbName, dbName, tableName, "%");
@@ -89,14 +148,14 @@ public class OrmGenerator extends OrmBase {
             if (pks.next()) {
                 pkColumnName = pks.getString("COLUMN_NAME");
             }
-           int i = 1;
+            int i = 1;
             while (resultSet.next()) {
                 String columnName = resultSet.getString("COLUMN_NAME");
                 String typeName;
                 ResultSetMetaData metaData = preparedStatement.getMetaData();
                 if (isOracle) {
                     typeName = mappingHandler.handleOracle(metaData.getColumnClassName(i), metaData.getColumnTypeName(i), metaData.getScale(i), columnName.equals(pkColumnName));
-                }else{
+                } else {
                     typeName = mappingHandler.handleMySQL(metaData.getColumnClassName(i));
                 }
                 String document = resultSet.getString("REMARKS");
@@ -117,7 +176,7 @@ public class OrmGenerator extends OrmBase {
         members.addAll(fields);
         members.addAll(getters);
         members.addAll(setters);
-        return clazz.toString();
+        return clazz;
     }
 
     private void setJPAAnnotation(ClassOrInterfaceDeclaration clazz, String tableName) {
