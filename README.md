@@ -15,11 +15,10 @@ OrmGenerator ormTool = new OrmGenerator("127.0.0.1", 3306, "username", "password
 String entity = ormTool.generateEntity("table_name");
 System.out.println(entity); //this is java pojo class string
 ```
-OrmGenerator.Options has 4 option param
+OrmGenerator.Options has 3 option param
 ```
 OrmGenerator.Options.annotation //generate JPA annotation, default false
 OrmGenerator.Options.comment //generate Javadoc comment via field remark, default true
-OrmGenerator.Options.classOnly //only output class declaration but the whole java file, default false
 OrmGenerator.Options.oldFieldComment //add Javadoc comment to old class files,default true
 ```
 Advanced
@@ -60,8 +59,6 @@ System.out.println(entity); //this will output new pojo class file based on 'tes
 ```
 ####Output
 ```
-package abc;
-import java.lang.*;
 public class Student{
   /** Student ID */
   private Long id;

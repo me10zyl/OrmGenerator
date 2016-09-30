@@ -38,7 +38,6 @@ public class OrmGenerator extends OrmBase {
         public boolean comment = true;
         //compare output
         public boolean oldFieldComment = true;
-        public boolean classOnly;
     }
 
     public OrmGenerator(String host, int port, String username, String password, String dbName, Database database, Options options) {
@@ -87,36 +86,47 @@ public class OrmGenerator extends OrmBase {
         return compareAndOutput(JavaParser.parse(existedClassJavaCode), gen);
     }
 
-    private String compareAndOutput(CompilationUnit exist, ClassOrInterfaceDeclaration gen) {
-        List<TypeDeclaration<?>> types = exist.getTypes();
-        ClassOrInterfaceDeclaration type = (ClassOrInterfaceDeclaration)types.get(0);
-        List<BodyDeclaration<?>> members = type.getMembers();
+    private String compareAndOutput(CompilationUnit existCU, ClassOrInterfaceDeclaration gen) {
+        List<TypeDeclaration<?>> types = existCU.getTypes();
+        ClassOrInterfaceDeclaration exist = (ClassOrInterfaceDeclaration) types.get(0);
         List<FieldDeclaration> genFields = gen.getFields();
-
         List<FieldDeclaration> addingFields = new ArrayList<FieldDeclaration>();
+        List<FieldDeclaration> existFields = exist.getFields();
+
+
+        for (int i = 0; i < genFields.size(); i++) {
+            FieldDeclaration genField = genFields.get(i);
+            boolean existed = false;
+            for (int j = 0; j < existFields.size(); j++) {
+                FieldDeclaration existField = existFields.get(j);
+                if (genField.getVariables().get(0).getId().getName().toLowerCase().
+                        equals(existField.getVariables().get(0).getId().getName().toLowerCase())) {
+                    Comment comment = existField.getComment();
+                    if (comment == null && genField.getComment() != null && options.oldFieldComment) {
+                        existField.setComment(genField.getComment());
+                    }
+                    existed = true;
+                    break;
+                }
+            }
+            if (!existed) {
+                addingFields.add(genField);
+            }
+        }
 
         int fieldEndIndex = 0;
-        int index = 0;
-        for (BodyDeclaration member : members) {
-            if (member instanceof FieldDeclaration) {
-                FieldDeclaration existField = (FieldDeclaration) member;
-                for (FieldDeclaration genField : genFields) {
-                    if (!genField.getVariables().get(0).getId().getName().toLowerCase().
-                            equals(existField.getVariables().get(0).getId().getName().toLowerCase())) {
-                        addingFields.add(genField);
-                    }else{
-                        Comment comment = existField.getComment();
-                        if(comment == null && genField.getComment() != null && options.oldFieldComment){
-                            existField.setComment(genField.getComment());
-                        }
-                    }
-                }
-                fieldEndIndex = index;
+        for(int i = 0 ; i < exist.getMembers().size();i ++){
+            if(exist.getMembers().get(i) instanceof  FieldDeclaration){
+                fieldEndIndex = i;
             }
-            index++;
         }
-        type.getMembers().addAll(fieldEndIndex, addingFields);
-        return options.classOnly ? type.toString() : exist.toString();
+
+        exist.getMembers().addAll(fieldEndIndex, addingFields);
+        for(FieldDeclaration field : addingFields){
+            exist.getMembers().add(gen.getMethodsByName("get" + firstLetterUppercase(field.getVariables().get(0).getId().getName())).get(0));
+            exist.getMembers().add(gen.getMethodsByName("set" + firstLetterUppercase(field.getVariables().get(0).getId().getName())).get(0));
+        }
+        return exist.toString();
     }
 
     public String generateEntity(String tableName) {
