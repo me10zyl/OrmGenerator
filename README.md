@@ -5,7 +5,7 @@ Database table to Java Pojo class, support JPA annotations.
 Support `MySQL`,`Oracle` database.
 <br/>
 
-Usage
+Basic Usage
 ---
 ```
 OrmGenerator.Options options = new OrmGenerator.Options();
@@ -27,8 +27,14 @@ Advanced
 ####database student table
 |id|name|score|
 |:---:|:---:|:---:|
-|1 | test|100|
+|1 | test|100|            
 |2 | test2|99|
+####database table fields comment
+
+>id - __Student ID__
+name - __Student name__
+score - __Student score__
+
 ####existed testClass file
 ```
 package abc;
@@ -36,6 +42,10 @@ import java.lang.*;
 public class Student{
   private Long id;
   private String name;
+  
+  public void eat(){
+      //this method will be reserved
+  }
 }
 ```
 ####Code
@@ -59,5 +69,9 @@ public class Student{
   private String name;
   /** Student score */
   private String score;
+  
+  public void eat(){
+        //this method will be reserved
+  }
 }
 ```
