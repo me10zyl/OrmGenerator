@@ -6,6 +6,7 @@
 
     <groupId>com.github</groupId>
     <artifactId>ormgenerator</artifactId>
+    <packaging>pom</packaging>
     <version>0.3</version>
 
     <dependencies>
@@ -22,7 +23,7 @@
         <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>ojdbc14</artifactId>
-            <version>10.2.0.1.0</version>
+            <version>10.2.0.2.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

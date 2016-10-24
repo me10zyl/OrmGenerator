@@ -69,7 +69,7 @@ public class OrmGenerator extends OrmBase {
         }
     }
 
-    public String generateEntity(String tableName, InputStream in) {
+    public String generateEntity(String tableName, InputStream in) throws SQLException {
         ClassOrInterfaceDeclaration gen = generateEntityImpl(tableName);
         if (in == null) {
             return gen.toString();
@@ -78,7 +78,7 @@ public class OrmGenerator extends OrmBase {
     }
 
 
-    public String generateEntity(String tableName, String existedClassJavaCode) {
+    public String generateEntity(String tableName, String existedClassJavaCode) throws SQLException {
         ClassOrInterfaceDeclaration gen = generateEntityImpl(tableName);
         if (existedClassJavaCode == null || existedClassJavaCode.equals("")) {
             return gen.toString();
@@ -129,11 +129,11 @@ public class OrmGenerator extends OrmBase {
         return exist.toString();
     }
 
-    public String generateEntity(String tableName) {
+    public String generateEntity(String tableName) throws SQLException {
         return generateEntity(tableName, "");
     }
 
-    private ClassOrInterfaceDeclaration generateEntityImpl(String tableName) {
+    private ClassOrInterfaceDeclaration generateEntityImpl(String tableName) throws SQLException {
         ClassOrInterfaceDeclaration clazz = new ClassOrInterfaceDeclaration(EnumSet.of(Modifier.PUBLIC), false, camelName(tableName, true));
         setJPAAnnotation(clazz, tableName);
         List<BodyDeclaration<?>> members = new ArrayList<BodyDeclaration<?>>();
@@ -178,9 +178,7 @@ public class OrmGenerator extends OrmBase {
                 fields.add(field);
                 i++;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
+        }  finally {
             release();
         }
         members.addAll(fields);
