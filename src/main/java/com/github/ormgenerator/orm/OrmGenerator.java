@@ -172,7 +172,7 @@ public class OrmGenerator extends OrmBase {
                 String fieldName = camelName(columnName, false);
                 FieldDeclaration field = getField(pkColumnName, columnName, fieldName, typeName, document);
                 MethodDeclaration getter = getGetter(fieldName, typeName);
-                MethodDeclaration setter = getSetter(fieldName);
+                MethodDeclaration setter = getSetter(fieldName, typeName);
                 getters.add(getter);
                 setters.add(setter);
                 fields.add(field);
@@ -203,9 +203,15 @@ public class OrmGenerator extends OrmBase {
         }
     }
 
-    private MethodDeclaration getSetter(String fieldName) {
+    private MethodDeclaration getSetter(String fieldName, String typeName) {
         EnumSet<Modifier> modifiers = EnumSet.of(Modifier.PUBLIC);
         MethodDeclaration setter = new MethodDeclaration(modifiers, new VoidType(), "set" + firstLetterUppercase(fieldName));
+        ClassOrInterfaceType type = new ClassOrInterfaceType(typeName);
+        VariableDeclaratorId var = new VariableDeclaratorId(fieldName);
+        Parameter p = new Parameter(type, var);
+        List<Parameter> ps = new ArrayList<Parameter>();
+        ps.add(p);
+        setter.setParameters(ps);
         List<Statement> stmts = new ArrayList<Statement>();
         NameExpr thisExpr = new NameExpr("this." + fieldName);
         NameExpr param = new NameExpr(fieldName);
